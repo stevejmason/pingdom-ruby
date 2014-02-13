@@ -1,6 +1,7 @@
 $:.unshift(File.dirname(__FILE__))
 
 require 'faraday'
+require 'faraday_middleware'
 require 'tinder/faraday_response'
 
 require 'active_support/core_ext/numeric/time'
