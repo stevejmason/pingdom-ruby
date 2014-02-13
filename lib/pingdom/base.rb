@@ -11,7 +11,7 @@ module Pingdom
       hash.each do |(attribute, aliases)|
         class_eval <<-"end;" unless instance_methods.include?(attribute.to_s)
           def #{attribute}
-            @attributes[:#{attribute}]
+            @attributes["#{attribute}"]
           end
         end;
 
@@ -22,15 +22,15 @@ module Pingdom
     end
 
     def method_missing(name, *args, &block)
-      @attributes[name] or super
+      @attributes[name.to_s] or super
     end
 
     def respond_to?(name)
-      super(name) || @attributes.key?(name)
+      super(name) || @attributes.key?(name.to_s)
     end
 
     def id
-      @attributes[:id]
+      @attributes["id"]
     end
 
     def inspect
