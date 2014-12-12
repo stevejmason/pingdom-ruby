@@ -23,6 +23,8 @@ module Pingdom
 
         builder.basic_auth @options[:username], @options[:password]
         builder.headers["App-Key"] = @options[:key]
+	if(@options[:account_email])
+          builder.headers["Account-Email"] = @options[:account_email]
       end
     end
 
