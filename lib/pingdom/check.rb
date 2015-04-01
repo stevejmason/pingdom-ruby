@@ -29,6 +29,11 @@ module Pingdom
       Time.at(super)
     end
 
+    def pause(paused)
+      _paused = (paused == true)
+      @client.update_check(self, paused: _paused)
+    end
+
   end
 
 end

@@ -14,7 +14,7 @@ module Pingdom
         builder.url_prefix = "https://api.pingdom.com/api/2.0"
 
         # builder.adapter :logger, @options[:logger]
-
+        builder.request  :url_encoded
         builder.adapter @options[:http_driver]
 
         # builder.use Gzip # TODO: write GZip response handler, add Accept-Encoding: gzip header
@@ -23,8 +23,10 @@ module Pingdom
 
         builder.basic_auth @options[:username], @options[:password]
         builder.headers["App-Key"] = @options[:key]
-	if @options[:account_email]
+
+        if @options[:account_email]
           builder.headers["Account-Email"] = @options[:account_email]
+        end
       end
     end
 
@@ -40,6 +42,18 @@ module Pingdom
 
     def get(uri, params = {}, &block)
       response = @connection.get(@connection.build_url(uri, prepare_params(params)), &block)
+      update_limits!(response.headers['req-limit-short'], response.headers['req-limit-long'])
+      response
+    end
+
+    def put(uri, params = {}, &block)
+      response = @connection.put(uri, params)
+      update_limits!(response.headers['req-limit-short'], response.headers['req-limit-long'])
+      response
+    end
+
+    def post(uri, params = {}, &block)
+      response = @connection.post(uri, params)
       update_limits!(response.headers['req-limit-short'], response.headers['req-limit-long'])
       response
     end
@@ -63,12 +77,36 @@ module Pingdom
       Result.parse(self, get("single", options)).first
     end
 
+    #
+    # Create a new Check with mandatory options
+    # Use options hash for addtional options
+    # Obtains and returns created Check object
+    #
+    def create_check(name, type, host, options={})
+      raise RuntimeError.new "Name, type and host are mandatory. [#{name}] [#{type}] [#{host}]" if (name.nil? || type.nil? || host.nil?)
+      raise RuntimeError.new "Options must be a hash. [#{options.class}:#{options}]" unless options.is_a? Hash
+
+      # Set mandatory parameters
+      options['name'] = name
+      options['type'] = type
+      options['host'] = host
+
+      response = post('checks', options)
+      return nil if response.status != 200
+      check(response.body['check']['id'])
+    end
+
     def checks(options = {})
       Check.parse(self, get("checks", options))
     end
 
     def check(id)
       Check.parse(self, get("checks/#{id}")).first
+    end
+
+    def update_check(check, params)
+      raise RuntimeError.new "Not a valid check [#{check}]" unless check.is_a? Pingdom::Check
+      put("checks/#{check.id}", params)
     end
 
     # Check ID
